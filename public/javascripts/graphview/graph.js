@@ -2,6 +2,11 @@
 // import Immutable from 'immutable';
 import {agentColors} from '../react/agentColors';
 
+const r = 13,
+  dis = 45;
+
+let transform;
+
 function graph(region, traces, step) {
   let transform = {x: 0, y: 0, scale: 1};
 
@@ -22,9 +27,10 @@ function graph(region, traces, step) {
     up = Math.min(node.row, up);
     down = Math.max(node.row, down);
   });
-  let columns = right - left + 1,
+  const columns = right - left + 1,
       rows = down - up + 1;
-
+  const graphWidth = (columns - 1) * dis,
+      graphHeight = (rows - 1) * dis;
 
 
   let allAgents = [];
@@ -76,9 +82,9 @@ function graph(region, traces, step) {
 
     return {
       index: i,
-      r:  15, //node半径
-      fx: (i % columns) * 60, //每个node的x坐标
-      fy: (Math.floor(i / columns)) * 60, //每个node的y坐标
+      r, //node半径
+      fx: (i % columns) * dis, //每个node的x坐标
+      fy: (Math.floor(i / columns)) * dis, //每个node的y坐标
       exists: exists, //该node是否需要显示，这是我另外加上去的属性，为了绘制时判断用的。见drawGraph里的drawLink和drawNode
       row,
       column,
@@ -107,29 +113,31 @@ function graph(region, traces, step) {
 
   //configuration
   var simulation = d3.forceSimulation(nodes)
-    .force('charge', d3.forceManyBody().strength(-60))
-    .force('link', d3.forceLink(links).strength(1).distance(50).iterations(10))
+    .force('charge', d3.forceManyBody().strength(-dis))
+    .force('link', d3.forceLink(links).strength(1).distance(dis).iterations(10))
     .on('tick', ticked);
 
   function ticked() {
     context.clearRect(0, 0, width, height);
     context.save();
-    context.translate(width/2 - columns * 20, height/2 - rows * 20);
+    context.translate(width/2 - graphWidth/2, height/2 - graphHeight/2);
 
-    transform.x = width/2 - columns * 20;
-    transform.y = height/2 - rows * 20;
+    transform.x = width/2 - graphWidth/2;
+    transform.y = height/2 - graphHeight/2;
 
     drawGraph();
 
     context.restore();
   }
 
-  d3.select(canvas).call(d3.zoom()
-    .scaleExtent([1, 1])
-    .on('zoom', zoomed));
+  let zoom = d3.zoom()
+    .scaleExtent([.9, 1.1])
+    .on('zoom', zoomed);
+  d3.select(canvas).call(zoom);
+
 
   function zoomed() {
-    let trans = d3.event.transform.translate(width/2 - columns * 20, height/2 - rows * 20);
+    let trans = d3.event.transform.translate(width/2 - graphWidth/2, height/2 - graphHeight/2);
     context.save();
     context.clearRect(0, 0, width, height);
     context.translate(trans.x, trans.y);
@@ -141,6 +149,24 @@ function graph(region, traces, step) {
     drawGraph();
     context.restore();
   }
+
+  // zoom1();
+  // function zoom1() {
+  //   console.log(transform);
+  //   console.log(d3.event.transform);
+  //   if (!transform.translate) return;
+  //   let trans = transform.translate(width/2 - graphWidth/2, height/2 - graphHeight/2);
+  //   context.save();
+  //   context.clearRect(0, 0, width, height);
+  //   context.translate(trans.x, trans.y);
+  //   context.scale(transform.k, transform.k);
+
+  //   transform = trans;
+  //   transform.scale = transform.k;
+
+  //   drawGraph();
+  //   context.restore();
+  // }
 
   //绘制整张图
   function drawGraph() {
@@ -183,111 +209,76 @@ function graph(region, traces, step) {
       context.fillText(d.count, d.x - 3.2, d.y + 3.6);
       context.font = '11px Arial';
       context.fillStyle = '#fff';
-      context.fillText(`(${d.row}, ${d.column})`, d.x + 5, d.y - 15);
+      context.fillText(`(${d.column + 1}，${d.row + 1})`, d.x + 5, d.y - r);
     }
   }
 
-  d3.select(canvas)
-    .on('click', () => {
-      // let unScaledNode = simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y);
-      // console.log(unScaledNode)
-      // console.log(unScaledNode.columnAtRegion * 60 * (transform.scale - 1));
-      // console.log(simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y));
-      let node = simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y);
-
-      let visitedAgents = [];
-      traces.forEach((trace, index) => {
-        let finded = trace.find((square, index) => {
-          if (index > step) return false;
-
-          if (square.row === node.row && square.column === node.column) return true;
-        });
-
-        if (finded) {
-          visitedAgents.push({
-            index,
-            trace
-          });
-        }
-      });
-
-      let currentAgent = visitedAgents.filter((agent) => {
-        let square = agent.trace[step];
-  
-        if (square.row === node.row && square.column === node.column) return true;
-
-        return false;
-      });
-
-      showNodeDetail(node, currentAgent, visitedAgents);
-    });
-
-  function showNodeDetail(node, currentAgents, visitedAgents) {
-    let $board = document.querySelector('#graph .info');
-    $board.children[0].innerHTML = `Node (${node.row}, ${node.column})`;
-
-    let $currentAgents = $board.querySelector('.current-agents');
-    $currentAgents.innerHTML = '';
-    currentAgents.forEach((agent) => {
-      $currentAgents.innerHTML +=
-        `<div class="agentPair">
-          <div class="agent" style="background: ${agentColors[agent.index]}">
-          </div>
-          <div>agent ${Number(agent.index) + 1}</div>
-        </div>`
-      ;
-    });
-
-    let $visitedAgents = $board.querySelector('.visited-agents');
-    $visitedAgents.innerHTML = '';
-    visitedAgents.forEach((agent) => {
-      $visitedAgents.innerHTML +=
-        `<div class="agentPair">
-          <div class="agent" style="background: ${agentColors[agent.index]}">
-          </div>
-          <div>agent ${Number(agent.index) + 1}</div>
-        </div>`
-      ;
-    });
-    // if (currentAgents.length === 0) $board.children[1].style.display = 'none';
-    // else $board.children[1].style.display = 'block';
-  }
-
-  //以下是控制drag，想想还是先不做了(具体原因先不用管)，以后你想做再说。
   // d3.select(canvas)
-  //   .call(
-  //   d3.drag()
-  //     .container(canvas)
-  //     .subject(dragsubject)
-  //     .on('start', dragstarted)
-  //     // .on('drag', dragged)
-  //     // .on('end', dragended)
-  //   );
+  //   .on('click', () => {
+  //     // let unScaledNode = simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y);
+  //     // console.log(unScaledNode)
+  //     // console.log(unScaledNode.columnAtRegion * 60 * (transform.scale - 1));
+  //     // console.log(simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y));
+  //     let node = simulation.find(d3.event.offsetX - transform.x, d3.event.offsetY - transform.y);
 
-  // function dragsubject() {
-  //   return simulation.find(d3.event.x - width / 2, d3.event.y - height / 2);
+  //     let visitedAgents = [];
+  //     traces.forEach((trace, index) => {
+  //       let finded = trace.find((square, index) => {
+  //         if (index > step) return false;
+
+  //         if (square.row === node.row && square.column === node.column) return true;
+  //       });
+
+  //       if (finded) {
+  //         visitedAgents.push({
+  //           index,
+  //           trace
+  //         });
+  //       }
+  //     });
+
+  //     let currentAgent = visitedAgents.filter((agent) => {
+  //       let square = agent.trace[step];
+  
+  //       if (square.row === node.row && square.column === node.column) return true;
+
+  //       return false;
+  //     });
+
+  //     showNodeDetail(node, currentAgent, visitedAgents);
+  //   });
+
+  // function showNodeDetail(node, currentAgents, visitedAgents) {
+  //   let $board = document.querySelector('#graph .info');
+  //   $board.children[0].innerHTML = `Node (${node.row}, ${node.column})`;
+
+  //   let $currentAgents = $board.querySelector('.current-agents');
+  //   $currentAgents.innerHTML = '';
+  //   currentAgents.forEach((agent) => {
+  //     $currentAgents.innerHTML +=
+  //       `<div class="agentPair">
+  //         <div class="agent" style="background: ${agentColors[agent.index]}">
+  //         </div>
+  //         <div>agent ${Number(agent.index) + 1}</div>
+  //       </div>`
+  //     ;
+  //   });
+
+  //   let $visitedAgents = $board.querySelector('.visited-agents');
+  //   $visitedAgents.innerHTML = '';
+  //   visitedAgents.forEach((agent) => {
+  //     $visitedAgents.innerHTML +=
+  //       `<div class="agentPair">
+  //         <div class="agent" style="background: ${agentColors[agent.index]}">
+  //         </div>
+  //         <div>agent ${Number(agent.index) + 1}</div>
+  //       </div>`
+  //     ;
+  //   });
+  //   // if (currentAgents.length === 0) $board.children[1].style.display = 'none';
+  //   // else $board.children[1].style.display = 'block';
   // }
 
-  // function dragstarted() {
-  //   //  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-  //   // d3.event.subject.fx = d3.event.subject.x;
-  //   // d3.event.subject.fy = d3.event.subject.y;
-  //   let flip = document.querySelector('#flip');
-  //   flip.style.display= 'block';
-  //   flip.innerHTML = flip.innerHTML + d3.event.subject;
-  //   console.log(d3.event.subject)
-  // }
-
-  //  function dragged() {
-  //   d3.event.subject.fx = d3.event.x;
-  //   d3.event.subject.fy = d3.event.y;
-  // }
-
-  // function dragended() {
-  //   if (!d3.event.active) simulation.alphaTarget(0);
-  //   d3.event.subject.fx = null;
-  //   d3.event.subject.fy = null;
-  // }
 
   setTimeout(() => {simulation.stop();}, 400);
 }

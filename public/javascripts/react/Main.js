@@ -12,7 +12,7 @@ import IconLocationOn from 'material-ui/svg-icons/communication/location-on';
 import ImageBlurOn from 'material-ui/svg-icons/Image/blur-on';
 import ActionHistory from 'material-ui/svg-icons/action/history';
 
-import {Game} from './Game';
+import {Visualization} from './Visualization';
 import {History} from './History';
 import {$f} from '../fn';
 
@@ -43,7 +43,7 @@ class Main extends React.Component {
           <div className="a">
             
           </div>
-          {this.state.nav === 0 ? <Game/> : null}
+          {this.state.nav === 0 ? <Visualization/> : null}
           {this.state.nav === 1 ? <History/> : null}
           <Paper 
             className={'navbar ' + (this.state.show_navbar ? 'show ' : '')}

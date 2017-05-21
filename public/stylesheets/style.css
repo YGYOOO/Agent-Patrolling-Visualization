@@ -113,6 +113,7 @@ body {
   height: 600px;
   overflow: auto;
   overflow-x: hidden;
+  z-index: 10;
 }
 .sketchBlock {
   position: relative; 
@@ -131,9 +132,18 @@ body {
   border-right: 1px solid lightgray;
   border-bottom: 1px solid lightgray;
   margin: 15px;
-  margin-right: -15px;
+  /*margin-right: -15px;*/
   float: left;
   cursor: pointer;
+  position: relative;
+}
+.regionID{
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+  left: 50%;
+  top: 50%;
+  color: grey;
 }
 .sketch.selected{
   /*box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);*/
@@ -264,7 +274,7 @@ body {
   width: 180px;
 }
 #rightBar > .hidden {
-  display: none;
+  display: none !important;
 }
 
 #rightBar input {
@@ -405,6 +415,16 @@ body {
 }
 @-webkit-keyframes hideMoreBar{
   0% {transform: translateX(0);}
+}
+.selector {
+  width: 155px !important;
+  color: white !important;
+}
+.selector > label {
+  color: lightgrey !important;
+}
+.selector > div > div > div {
+  color: white !important;
 }
 
 #traces {
@@ -599,24 +619,44 @@ textarea:focus {
   0%{transform: translateY(0)}
   100%{transform: translateY(-100%)}
 }
-.filter {
+.filters{
+  position: relative;
+}
+.filters > div {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 35px 0;
+  color: lightgray;
 }
-.filter > div {
-  margin: 0 25px;
+.filters > div:first-child {
+  margin-top: 31px;
+  margin-bottom: 18px;
+}
+.filter {
+  margin: 0 25px !important;
+  width: 180px !important;
+  overflow-x: hidden;
 }
 .run-list {
   width: 80%;
   margin: 15px auto;
+  margin-bottom: 40px;
 }
 span.tab {
   width: 15px;
   height: 1px;
   display: block;
   float: left;
+}
+.envSize {
+  width: 80px !important;
+  margin: 5px;
+}
+.search {
+  position: absolute;
+  right: 10%;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /*-----------*/
@@ -625,4 +665,7 @@ span.tab {
 }
 .empty-line {
   height: 15px;
+}
+.run-content{
+  padding-top: 5px !important;
 }

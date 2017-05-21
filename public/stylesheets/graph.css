@@ -4,7 +4,7 @@
   left: 50%;
   margin-top: -400px;
   margin-left: -400px;
-  width: 800px;
+  width: 600px;
   height: 800px;
   animation: show .5s ease;
   -webkit-animation: show .5s ease;
@@ -13,10 +13,13 @@
 
 #graph > .info {
   position: absolute;
-  right: 0;
+  right: -200px;
   top:100px;
-  width: 200px;
+  max-width: 280px;
+  min-width: 195px;
+  max-height: 600px;
   padding: 10px;
+  overflow-y: auto;
   color: white;
 }
 #graph > .info > div {
@@ -33,7 +36,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 200%;
   background: white;
   opacity: .3;
   z-index: -1;
@@ -63,6 +66,11 @@
   align-items: center;
 }
 
+#toggle {
+  position: absolute !important;
+  right: 15 !important;
+  top: 5 !important;
+}
 
 @keyframes show {
   0% {opacity: 0; transform: translateX(25px)}
@@ -79,4 +87,47 @@
 @-webkit-keyframes hide{
   0% {opacity: 1; }
   100% {opacity: 0; transform: translateX(25px)}
+}
+
+.target {
+  width: 45px;
+  height: 30px;
+  text-align: center;
+  line-height: 30px;
+  border: 1px solid white;
+  float: left;
+  margin-right:5px;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.targetList {
+  overflow: auto;
+}
+.curTargets-agent {
+  width: 60px;
+  height: 30px;
+  text-align: center;
+  line-height: 30px;
+  border: 1px solid white;
+  float: left;
+  margin-right: 20px;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.curTargets {
+  clear: both;
+}
+.curTargets > div:first-child {
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+.curTargets > div:first-child > div:first-child{
+  float: left;
+  margin-right: 42px;
+}
+.curTargets > div:nth-child(2){
+  margin-bottom: 5px;
+}
+.curTargets > div:last-child > div{
+  overflow: auto;
 }

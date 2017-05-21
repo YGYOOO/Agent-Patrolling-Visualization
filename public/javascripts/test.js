@@ -57,14 +57,3 @@ import {$f} from './fn';
 //             });
 //         }
 
-const obj = {
-    method: 'post',
-    url: '/test',
-    data: JSON.stringify({test: 123})
-};
-$f.ajax(obj)
-    .then((result) => {
-        console.log(result);
-    }).catch((err) => {
-        console.log(err);
-    });

@@ -1,4 +1,5 @@
 import React from 'react';
+import {$f} from '../fn.js';
 
 class Traces extends React.Component {
 
@@ -14,7 +15,7 @@ class Traces extends React.Component {
   renderLines(traces) {
     let lines = [];
     traces.forEach((trace, index) => {
-      if (this.props.agents && this.props.agents.get(index).hidden) return;
+      if (this.props.agents && $f.get(this.props.agents, index).hidden) return;
       lines.push(this.renderLine(trace, index));
     });
 

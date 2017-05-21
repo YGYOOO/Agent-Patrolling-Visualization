@@ -10,6 +10,10 @@ class RunningEnvironment{
         this.targetLists = new Object();
         this.agentMapRegion = new Object();
         this.shortestPaths = new Object();
+        this.historyTargetLists = new Object();
+        this.targets = new Object();
+        this.agents = [];
+        this.steps = 0;
     }
 
     //init the environment with blockMatrix
@@ -41,6 +45,13 @@ class RunningEnvironment{
         let positions = [];
         positions.push(initialPosition);
         this.traces[ID] = positions;
+
+        let agent = new Object();
+        agent.aid = ID;
+        agent.visitedNodes = 1;
+        this.agents.push(agent);
+
+        this.targets[ID] = [];
 
         let shortestPath = [];
         this.shortestPaths[ID] = shortestPath;
@@ -83,6 +94,7 @@ class RunningEnvironment{
         for (let key in regions) {
             this.regions[key] = regions[key];
             this.targetLists[key] = regions[key];
+            this.historyTargetLists[key] = [];
         }
     }
 
@@ -92,7 +104,7 @@ class RunningEnvironment{
         let maxDistance = 0;
         let target;
         this.targetLists[regionID].forEach((position) => {
-            let distance = this.manhattanDistance(currentPosition, position)
+            let distance = this.manhattanDistance(currentPosition, position);
             if (distance > maxDistance) {
                 target = position;
                 maxDistance = distance;
@@ -112,25 +124,34 @@ class RunningEnvironment{
 
     move() {
         while (!this.isComplete() || !this.allAgentArriveTarget()) {
+            this.steps++;
+            for (var regionID in this.targetLists) {
+                this.historyTargetLists[regionID].push(this.targetLists[regionID]);
+            }
+            // positions need to be removed from the taregt list
+            let positions = [];
+
             for (var agentID in this.traces) {
                 let shortestPath = this.shortestPaths[agentID];
 
                 if (shortestPath.length != 0) {
+                    let target = shortestPath[shortestPath.length - 1];
                     let nextPosition = shortestPath.shift();
                     this.markVisited(nextPosition);
                     this.traces[agentID].push(nextPosition);
+                    this.targets[agentID].push(target);
                     this.removeFromTargetList(agentID, nextPosition);
                 } else {
                 
                     let trace = this.traces[agentID];
-                    let currentPosistion = trace[trace.length - 1];
-                    let target = this.getATargetFromTargetList(agentID, currentPosistion);
+                    let currentPosition = trace[trace.length - 1];
+                    let target = this.getATargetFromTargetList(agentID, currentPosition);
                     if (!target) {
                         continue;
                     }
                     let grid = new PF.Grid(this.matrix); 
                     let finder = new PF.AStarFinder();
-                    let path = finder.findPath(currentPosistion.column, currentPosistion.row,
+                    let path = finder.findPath(currentPosition.column, currentPosition.row,
                                                 target.column, target.row, grid);
                     
                     //take the next point and move to it
@@ -139,7 +160,11 @@ class RunningEnvironment{
                     nextPosition.column = path[1][0];
                     this.markVisited(nextPosition);
                     trace.push(nextPosition);
-                    this.removeFromTargetList(agentID, nextPosition);
+                    this.targets[agentID].push(target);
+                    //this.removeFromTargetList(agentID, nextPosition);
+                    nextPosition.agentID = agentID;
+                    positions.push(nextPosition);
+
                     this.removeFromTargetList(agentID, target);
                     //store the path into shortestPath
                     let i;
@@ -150,6 +175,214 @@ class RunningEnvironment{
                         shortestPath.push(position);
                     }
                 }
+            }
+            for (var i = 0; i < positions.length; i++) {
+                this.removeFromTargetList(positions[i].agentID, positions[i]);
+            }
+        }    
+        let map = new Map();
+        Object.keys(this.traces).forEach(key => {
+            map.set(key, this.traces[key]);
+        }); 
+        this.traces = map;
+    }
+
+//=============================================== algorithm 3 ================================
+    getAFarestTarget(agentID, currentPosition) {
+        let regionID = this.agentMapRegion[agentID];
+        let maxDistance = 0;
+        let target;
+        this.targetLists[regionID].forEach((position) => {
+            let grid = new PF.Grid(this.matrix); 
+            let finder = new PF.AStarFinder();
+            let path = finder.findPath(currentPosition.column, currentPosition.row,
+                                        position.column, position.row, grid);
+            let distance = path.length;
+            if (distance > maxDistance) {
+                target = position;
+                maxDistance = distance;
+            }
+        });
+        return target;
+    }
+
+    move3() {
+        while (!this.isComplete() || !this.allAgentArriveTarget()) {
+            this.steps++;
+            for (var regionID in this.targetLists) {
+                this.historyTargetLists[regionID].push(this.targetLists[regionID]);
+            }
+            //the positions need to be removed from target list
+            let positions = [];
+            for (var agentID in this.traces) {
+                let shortestPath = this.shortestPaths[agentID];
+
+                if (shortestPath.length != 0) {
+                    let target = shortestPath[shortestPath.length - 1];
+                    let nextPosition = shortestPath.shift();
+                    this.markVisited(nextPosition);
+                    this.traces[agentID].push(nextPosition);
+                    this.targets[agentID].push(target);
+                    this.removeFromTargetList(agentID, nextPosition);
+                } else {
+                
+                    let trace = this.traces[agentID];
+                    let currentPosition = trace[trace.length - 1];
+                    let target = this.getAFarestTarget(agentID, currentPosition);
+                    if (!target) {
+                        continue;
+                    }
+                    let grid = new PF.Grid(this.matrix); 
+                    let finder = new PF.AStarFinder();
+                    let path = finder.findPath(currentPosition.column, currentPosition.row,
+                                                target.column, target.row, grid);
+                    
+                    //take the next point and move to it
+                    let nextPosition = new Object();
+                    nextPosition.row = path[1][1];
+                    nextPosition.column = path[1][0];
+                    this.markVisited(nextPosition);
+                    trace.push(nextPosition);
+                    this.targets[agentID].push(target);
+                    // this.removeFromTargetList(agentID, nextPosition);
+                    //this.removeFromTargetList(agentID, target);
+                    nextPosition.agentID = agentID;
+                    positions.push(nextPosition);
+                    //store the path into shortestPath
+                    let i;
+                    for (i = 2; i < path.length; i++) {
+                        let position = new Object();
+                        position['column'] = path[i][0];
+                        position['row'] = path[i][1];
+                        shortestPath.push(position);
+                    }
+                }
+            }
+            for (var i = 0; i < positions.length; i++) {
+                this.removeFromTargetList(positions[i].agentID, positions[i]);
+            }
+        }    
+        let map = new Map();
+        Object.keys(this.traces).forEach(key => {
+            map.set(key, this.traces[key]);
+        }); 
+        this.traces = map;
+    }
+
+//======================================== algorithm 4 ========================================
+    getTheFirstOfTargetList(agentID, currentPosition) {
+        let regionID = this.agentMapRegion[agentID];
+        return this.targetLists[regionID][0];
+    }
+    
+    move4() {
+        while (!this.isComplete() || !this.allAgentArriveTarget()) {
+            this.steps++;
+            for (var regionID in this.targetLists) {
+                this.historyTargetLists[regionID].push(this.targetLists[regionID]);
+            }
+
+            let positions = [];
+            //update the visited nodes of each agent
+            for (var agentID in this.traces) {
+                let trace = this.traces[agentID];
+                let temp = [];
+
+                for (var i = 0; i < trace.length; i++) {
+                    let position = trace[i];
+                    let isNewNode = true;
+                    for (var j = 0; j < temp.length; j++) {
+                        let node = temp[j];
+                        if (node.column === position.column && node.row === position.row) {
+                            isNewNode = false;
+                        } 
+                    }
+                    if (isNewNode) {
+                        temp.push(position);
+                    }
+                }
+                for (let j = 0; j < this.agents.length; j++) {
+                    if (this.agents[j].aid == agentID) {
+                        this.agents[j].visitedNodes = temp.length;
+                        break;
+                    }
+                } 
+            }
+
+            //store the agents who need to select target at the same time
+            let tempAgents = [];
+
+            let notChoosetargetAgents = [];
+
+            for (var agentID in this.traces) {
+                let shortestPath = this.shortestPaths[agentID];
+
+                if (shortestPath.length != 0) {
+                    notChoosetargetAgents.push(agentID);
+                } else {
+                    for (var i = 0; i < this.agents.length; i++) {
+                        let agent = this.agents[i];
+                        if (agent.aid == agentID) {
+                            tempAgents.push(agent);
+                        }
+                    }
+                }
+            }
+
+            tempAgents.sort(function (a, b) {
+                return a.visitedNodes - b.visitedNodes;
+            });
+
+            for (var j = 0; j < tempAgents.length; j++) {
+                let agent = tempAgents[j];
+                let agentID = agent.aid;
+
+                let shortestPath = this.shortestPaths[agentID];
+                let trace = this.traces[agentID];
+                let currentPosition = trace[trace.length - 1];
+                let target = this.getTheFirstOfTargetList(agentID, currentPosition);
+                if (!target) {
+                    continue;
+                }
+                let grid = new PF.Grid(this.matrix); 
+                let finder = new PF.AStarFinder();
+                let path = finder.findPath(currentPosition.column, currentPosition.row,
+                                            target.column, target.row, grid);
+                
+                //take the next point and move to it
+                let nextPosition = new Object();
+                nextPosition.row = path[1][1];
+                nextPosition.column = path[1][0];
+                this.markVisited(nextPosition);
+                trace.push(nextPosition);
+                this.targets[agentID].push(target);
+                
+                nextPosition.agentID = agentID;
+                positions.push(nextPosition);
+                //this.removeFromTargetList(agentID, nextPosition);
+                //this.removeFromTargetList(agentID, target);
+                //store the path into shortestPath
+                let i;
+                for (i = 2; i < path.length; i++) {
+                    let position = new Object();
+                    position['column'] = path[i][0];
+                    position['row'] = path[i][1];
+                    shortestPath.push(position);
+                }
+            }
+            for (var i = 0; i < positions.length; i++) {
+                this.removeFromTargetList(positions[i].agentID, positions[i]);
+            }
+            for (let i = 0; i < notChoosetargetAgents.length; i++) {
+                let aid = notChoosetargetAgents[i];
+                let shortestPath = this.shortestPaths[aid];
+                let target = shortestPath[shortestPath.length - 1];
+                    
+                let nextPosition = shortestPath.shift();
+                this.markVisited(nextPosition);
+                this.traces[aid].push(nextPosition);
+                this.targets[aid].push(target);
+                this.removeFromTargetList(aid, nextPosition);
             }
         }    
         let map = new Map();

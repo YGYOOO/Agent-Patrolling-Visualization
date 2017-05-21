@@ -13,38 +13,63 @@ function readFile(files, callback) {
         reader.onload = function(event) {
             //get all contents in the file
             var contents = event.target.result;
-            var lines = contents.split('\n');
 
-            var dimension = lines[0].split('X');
-            var width = dimension[0].trim();
-            var length = dimension[1].trim();
+            var newContents = contents.replace(/\),(\s)+/g,'),').replace(/(gent\s\d+\sat\s\(\d+,\d+\))(\s)+(A)/g, (match, p1, p2, p3) => {
+	            return p1 + ', ' + p3;
+            });
+
+            var lines = newContents.split('\n');
+
+            var size = lines[0].match(/\d+/g);
+            var width = size[0];
+            var length = size[1];
             
             result['width'] = parseInt(width);
             result['height'] = parseInt(length);
 
             var i;
-            var numberOfRegions = parseInt(lines[1]);
+            var regionStrings = newContents.split("Region");
+            var numberOfRegions = regionStrings.length - 1;
             
-            for (i = 2; i + 1 < lines.length; i = i + 2) {
-                var regionID = parseInt(lines[i].split(':')[1].trim());
-                var positions = [];
-                var p = lines[i + 1].split(', ');
+            for (i = 1; i < regionStrings.length; i++) {
+                var seperateLines = regionStrings[i].split('\n');
+
+                var region = [];
+
+                var regionID = parseInt(seperateLines[0].match(/\d+/g)[0]);
+                region['id'] = regionID;
+
+                var p = seperateLines[1].match(/\d+/g);
                 
                 var j;
-                for (j = 0; j < p.length; j++) {
-                    var coordinate = p[j].split(',');
-                    var row = coordinate[0].substring(1);
-                    var column = coordinate[1].substring(0, 1);
+                for (j = 0; j < p.length; j = j + 2) {
                     var position = {};
-                    position['row'] = parseInt(row);
-                    position['column'] = parseInt(column);
-                    positions.push(position);
+                    position['column'] = parseInt(p[j] - 1);
+                    position['row'] = parseInt(p[j + 1] - 1);
+                    region.push(position);
                 }
+
+                // the agents in one region
+                var agents = [];
+                var a = seperateLines[2].match(/\d+/g);
+                if (a) {
+                    for (j = 0; j < a.length; j = j + 3) {
+                        var agent = {};
+                        var agentID = parseInt(a[j]);
+                        agent['id'] = agentID;
+                        agent['column'] = parseInt(a[j + 1] - 1);
+                        agent['row'] = parseInt(a[j + 2] - 1);
+
+                        agents.push(agent);
+                    }
+                }
+                region['agents'] = agents;
                 //add to regions, positions represent a positions in a region
-                regions.push(positions);
+                regions.push(region);
             }
             //all regions as an value in the result
             result['regions'] = regions;
+            
             callback(result);
             console.log(result);
             // return result;

@@ -1,5 +1,5 @@
 var mongodb = require('mongodb');
-var url = 'mongodb://138.49.101.86:27017/test';
+var url = 'mongodb://xuchaohui:Xu111111@ds046939.mlab.com:46939/myuberlite';
 
 var createRecord = function(db, recordObj, callback){
       db.collection('record').insertOne(recordObj, function(err, writeResult){
@@ -32,7 +32,6 @@ module.exports.recordCreate = function(obj,callback){
   });
 };
 
-
 var findRecordByTime = function(db, start,end, callback){
   db.collection('record').find({ id: { $gt: start, $lt: end } }).toArray(function(err, thing){
     db.close();
@@ -47,6 +46,7 @@ var findRecordByTime = function(db, start,end, callback){
 
 module.exports.getRecordByTime = function(start,end, callback){
   mongodb.connect(url,function(err,db){
+    console.log(err);
     if(err){
       callback(err,null);
     }
@@ -75,6 +75,56 @@ module.exports.getRecordByDescription = function(description, callback){
     }
     else {
       findRecordByDescription(db,description,callback);
+    }
+  });
+};
+
+
+var findRecordByMutiple= function(db, queryObject, callback){
+
+  db.collection('record').find({ description: new RegExp(description)}).toArray(function(err,thing){
+    db.close();
+    if(thing){
+      callback(null,thing);
+    }
+    else {
+      callback(null,null);
+    }
+  });
+};
+
+module.exports.getRecordByMutiple = function(queryObject, callback){
+  mongodb.connect(url,function(err,db){
+    console.log(err);
+    if(err){
+      callback(err,null);
+    }
+    else {
+      findRecordByMutiple(db,description,callback);
+    }
+  });
+};
+
+var findAllRecords = function(db, callback){
+  db.collection('record').find().toArray(function(err, thing){
+    db.close();
+    if(thing){
+      callback(null,thing);
+    }
+    else {
+      callback(null,null);
+    }
+  });
+};
+
+module.exports.getAllRecords = function( callback){
+  mongodb.connect(url,function(err,db){
+    console.log(err);
+    if(err){
+      callback(err,null);
+    }
+    else {
+      findAllRecords(db,callback);
     }
   });
 };
